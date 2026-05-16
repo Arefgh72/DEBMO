@@ -27,5 +27,5 @@
       "visibility": "public"
     }
   },
-  "postCreateCommand": "bash .devcontainer/setup.sh"
+  "postCreateCommand": "bash .devcontainer/setup.sh && bash .devcontainer/start.sh"
 }
