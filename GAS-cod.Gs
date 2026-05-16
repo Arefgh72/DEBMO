@@ -31,6 +31,9 @@ function _doSingle(req) {
   var resp = UrlFetchApp.fetch(WORKER_URL, {
     method: "post",
     contentType: "application/json",
+    headers: {
+      "X-Relay-Auth": AUTH_KEY
+    },
     payload: JSON.stringify(payload),
     muteHttpExceptions: true,
     followRedirects: true
@@ -63,6 +66,9 @@ function _doBatch(items) {
         url: WORKER_URL,
         method: "post",
         contentType: "application/json",
+        headers: {
+          "X-Relay-Auth": AUTH_KEY
+        },
         payload: JSON.stringify(payload),
         muteHttpExceptions: true,
         followRedirects: true
@@ -105,11 +111,21 @@ function _buildWorkerPayload(req) {
     }
   }
 
+  var body = null;
+  if (req.b) {
+    if (typeof req.b === "string") {
+      body = Utilities.base64Encode(req.b);
+    } else {
+      // If it's already an object or array, stringify then encode
+      body = Utilities.base64Encode(JSON.stringify(req.b));
+    }
+  }
+
   return {
     u: req.u,
     m: (req.m || "GET").toUpperCase(),
     h: headers,
-    b: req.b || null,
+    b: body,
     ct: req.ct || null,
     r: req.r !== false
   };

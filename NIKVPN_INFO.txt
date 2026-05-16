@@ -1,11 +1,11 @@
 ===================================================
    NikVPN GAS Relay & VLESS Config Summary
-   Last Updated: Sat May 16 19:40:12 UTC 2026
+   Last Updated: Sat May 16 20:26:47 UTC 2026
 ===================================================
 
 1. VLESS Link (Import this in v2rayNG/Nekobox):
 ---------------------------------------------------
-vless://UUID_NOT_FOUND@YOUR_CODESPACE_NAME:443?encryption=none&security=none&type=xhttp&mode=packet-up&path=%2F#NikVPN_GAS
+vless://01a659d6-bb1a-490e-9409-c0973771d44c@YOUR_CODESPACE_NAME:443?encryption=none&security=none&type=xhttp&mode=packet-up&path=%2F#NikVPN_GAS
 ---------------------------------------------------
 
 2. GAS Relay URL (Put this in your GAS-cod.Gs file):
