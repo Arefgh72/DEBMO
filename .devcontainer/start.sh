@@ -23,7 +23,6 @@ while true; do
     # Check Node Relay
     if ! pgrep -f "node .devcontainer/relay.js" > /dev/null; then
         echo "$(date): Restarting Node Relay..."
-        # Find if it's in a different pane or needs a new one
         tmux send-keys -t nikvpn:0.1 "node .devcontainer/relay.js" C-m
     fi
     sleep 30
@@ -36,44 +35,45 @@ tmux send-keys -t nikvpn "xray -c .devcontainer/config.json" C-m
 tmux split-window -h -t nikvpn
 tmux send-keys -t nikvpn "node .devcontainer/relay.js" C-m
 
-# Start watchdog in a separate background process
+# Start watchdog
 /tmp/nikvpn_watchdog.sh >> /tmp/nikvpn_watchdog.log 2>&1 &
 
-echo "Services started in tmux session 'nikvpn' with watchdog."
+echo "Services started."
 
-# Background tasks for port visibility and link update
+# Background automation
 (
-    # Wait for services to initialize
-    sleep 15
+    sleep 20
 
-    # 1. Automate port visibility
+    # 1. Port visibility
     if command -v gh &> /dev/null; then
-        for port in 443 8080; do
-            gh codespace ports visibility $port:public -c "$CODESPACE_NAME" 2>/dev/null || true
-        done
-        echo "Ports set to public."
+        gh codespace ports visibility 443:public 8080:public -c "$CODESPACE_NAME" 2>/dev/null || true
     fi
 
-    # 2. Generate Link File
+    # 2. Update Link File
     bash .devcontainer/show-link.sh > NIKVPN_INFO.txt
-    echo "NIKVPN_INFO.txt generated."
 
-    # 3. Git Push Logic (Bulletproof)
+    # 3. Enhanced Git Push
     git config user.email "codespace@github.com"
     git config user.name "Codespace Auto-Bot"
 
+    # Try to get token if not in env
+    TOKEN="$GITHUB_TOKEN"
+    if [ -z "$TOKEN" ]; then
+        TOKEN=$(gh auth token 2>/dev/null)
+    fi
+
+    REPO="$GITHUB_REPOSITORY"
+    if [ -z "$REPO" ]; then
+        REPO=$(git remote get-url origin | sed 's/https:\/\/github.com\///;s/\.git$//')
+    fi
+
     git add NIKVPN_INFO.txt
     if git commit -m "docs: auto-update links [skip ci] - $(date)" 2>/dev/null; then
-        if [ -n "$GITHUB_TOKEN" ]; then
-            # Construct authenticated remote URL
-            REMOTE_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-            git push "$REMOTE_URL" HEAD || echo "Push failed with token."
+        if [ -n "$TOKEN" ] && [ -n "$REPO" ]; then
+            REMOTE_URL="https://x-access-token:${TOKEN}@github.com/${REPO}.git"
+            git push "$REMOTE_URL" HEAD || echo "Push failed."
         else
-            git push origin HEAD || echo "Push failed (no token)."
+            git push origin HEAD || echo "Push failed (no credentials)."
         fi
-    else
-        echo "Nothing to commit."
     fi
 ) &> /tmp/nikvpn_startup.log &
-
-echo "Background tasks running. Check /tmp/nikvpn_startup.log"
