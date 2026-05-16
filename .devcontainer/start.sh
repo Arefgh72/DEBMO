@@ -4,25 +4,47 @@
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
-# Kill existing tmux session if it exists to avoid conflicts
+# Kill existing tmux session if it exists
 tmux kill-session -t nikvpn 2>/dev/null
 
-# Start a new tmux session in the background
+# Start a new tmux session
 tmux new-session -d -s nikvpn
 
-# Run Xray in the first pane
-tmux send-keys -t nikvpn "xray -c .devcontainer/config.json" C-m
+# Create the watchdog script
+cat << 'EOF' > /tmp/nikvpn_watchdog.sh
+#!/bin/bash
+while true; do
+    # Check Xray
+    if ! pgrep -x "xray" > /dev/null; then
+        echo "$(date): Restarting Xray..."
+        tmux send-keys -t nikvpn:0.0 "xray -c .devcontainer/config.json" C-m
+    fi
 
-# Split the pane and run the Node.js relay
+    # Check Node Relay
+    if ! pgrep -f "node .devcontainer/relay.js" > /dev/null; then
+        echo "$(date): Restarting Node Relay..."
+        # Find if it's in a different pane or needs a new one
+        tmux send-keys -t nikvpn:0.1 "node .devcontainer/relay.js" C-m
+    fi
+    sleep 30
+done
+EOF
+chmod +x /tmp/nikvpn_watchdog.sh
+
+# Setup panes in tmux
+tmux send-keys -t nikvpn "xray -c .devcontainer/config.json" C-m
 tmux split-window -h -t nikvpn
 tmux send-keys -t nikvpn "node .devcontainer/relay.js" C-m
 
-echo "Services started in tmux session 'nikvpn'."
+# Start watchdog in a separate background process
+/tmp/nikvpn_watchdog.sh >> /tmp/nikvpn_watchdog.log 2>&1 &
 
-# Perform network-dependent tasks in the background to prevent blocking Codespace startup
+echo "Services started in tmux session 'nikvpn' with watchdog."
+
+# Background tasks for port visibility and link update
 (
-    # Wait for services and network to be ready
-    sleep 10
+    # Wait for services to initialize
+    sleep 15
 
     # 1. Automate port visibility
     if command -v gh &> /dev/null; then
@@ -36,24 +58,22 @@ echo "Services started in tmux session 'nikvpn'."
     bash .devcontainer/show-link.sh > NIKVPN_INFO.txt
     echo "NIKVPN_INFO.txt generated."
 
-    # 3. Git Push Logic
+    # 3. Git Push Logic (Bulletproof)
     git config user.email "codespace@github.com"
     git config user.name "Codespace Auto-Bot"
 
     git add NIKVPN_INFO.txt
     if git commit -m "docs: auto-update links [skip ci] - $(date)" 2>/dev/null; then
-        # Use GITHUB_TOKEN for authentication if available
         if [ -n "$GITHUB_TOKEN" ]; then
             # Construct authenticated remote URL
-            REMOTE_URL=$(git remote get-url origin | sed "s/https:\/\//https:\/\/x-access-token:${GITHUB_TOKEN}@/")
-            git push "$REMOTE_URL" main || echo "Push failed with token."
+            REMOTE_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            git push "$REMOTE_URL" HEAD || echo "Push failed with token."
         else
-            git push origin main || echo "Push failed (no token)."
+            git push origin HEAD || echo "Push failed (no token)."
         fi
     else
         echo "Nothing to commit."
     fi
 ) &> /tmp/nikvpn_startup.log &
 
-echo "Background tasks (ports and git push) are running in the background."
-echo "Check /tmp/nikvpn_startup.log for progress."
+echo "Background tasks running. Check /tmp/nikvpn_startup.log"

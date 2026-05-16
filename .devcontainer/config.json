@@ -39,7 +39,8 @@
           "mode": "packet-up",
           "path": "/",
           "maxUploadSize": 1000000,
-          "maxConcurrentUploads": 10
+          "maxConcurrentUploads": 10,
+          "host": ""
         }
       },
       "sniffing": {
