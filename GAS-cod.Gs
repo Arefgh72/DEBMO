@@ -1,6 +1,6 @@
 // Google Apps Script
 
-const AUTH_KEY = "My777GHSuperSecret123!@#";
+const AUTH_KEY = "@@@@@@@@@@";
 const WORKER_URL = "PUT_YOUR_CODESPACE_RELAY_URL_HERE"; // Example: https://name-8080.app.github.dev
 
 const SKIP_HEADERS = {
