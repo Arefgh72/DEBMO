@@ -1,12 +1,13 @@
 #!/bin/bash
 
-# Navigate to the root directory
-cd "$(dirname "$0")/.."
+# Navigate to the root directory of the repository
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$REPO_ROOT"
 
-# Kill existing tmux session if it exists
+# Kill existing tmux session if it exists to avoid conflicts
 tmux kill-session -t nikvpn 2>/dev/null
 
-# Start a new tmux session
+# Start a new tmux session in the background
 tmux new-session -d -s nikvpn
 
 # Run Xray in the first pane
@@ -16,35 +17,43 @@ tmux send-keys -t nikvpn "xray -c .devcontainer/config.json" C-m
 tmux split-window -h -t nikvpn
 tmux send-keys -t nikvpn "node .devcontainer/relay.js" C-m
 
-echo "Xray and GAS Relay started in tmux session 'nikvpn'."
+echo "Services started in tmux session 'nikvpn'."
 
-# Wait a few seconds for services to initialize
-sleep 5
+# Perform network-dependent tasks in the background to prevent blocking Codespace startup
+(
+    # Wait for services and network to be ready
+    sleep 10
 
-# Automate port visibility (make ports public) using GitHub CLI
-# We use a loop to ensure it's applied
-for port in 443 8080; do
-    gh codespace ports visibility $port:public -c "$CODESPACE_NAME" 2>/dev/null || true
-done
+    # 1. Automate port visibility
+    if command -v gh &> /dev/null; then
+        for port in 443 8080; do
+            gh codespace ports visibility $port:public -c "$CODESPACE_NAME" 2>/dev/null || true
+        done
+        echo "Ports set to public."
+    fi
 
-# Generate links and save to NIKVPN_INFO.txt in root
-bash .devcontainer/show-link.sh > NIKVPN_INFO.txt
-echo "Links and information generated in NIKVPN_INFO.txt"
+    # 2. Generate Link File
+    bash .devcontainer/show-link.sh > NIKVPN_INFO.txt
+    echo "NIKVPN_INFO.txt generated."
 
-# Git operations to push the file to the repository
-# Set local git config for this operation
-git config user.email "codespace@github.com"
-git config user.name "Codespace Auto-Bot"
+    # 3. Git Push Logic
+    git config user.email "codespace@github.com"
+    git config user.name "Codespace Auto-Bot"
 
-# Add, commit and push
-git add NIKVPN_INFO.txt
-git commit -m "docs: update NikVPN info [skip ci] - $(date)" || echo "No changes to commit"
+    git add NIKVPN_INFO.txt
+    if git commit -m "docs: auto-update links [skip ci] - $(date)" 2>/dev/null; then
+        # Use GITHUB_TOKEN for authentication if available
+        if [ -n "$GITHUB_TOKEN" ]; then
+            # Construct authenticated remote URL
+            REMOTE_URL=$(git remote get-url origin | sed "s/https:\/\//https:\/\/x-access-token:${GITHUB_TOKEN}@/")
+            git push "$REMOTE_URL" main || echo "Push failed with token."
+        else
+            git push origin main || echo "Push failed (no token)."
+        fi
+    else
+        echo "Nothing to commit."
+    fi
+) &> /tmp/nikvpn_startup.log &
 
-# Push using the built-in GITHUB_TOKEN for authentication
-# Codespaces provides this token automatically if permissions are set in devcontainer.json
-if [ -n "$GITHUB_TOKEN" ]; then
-    git push origin main
-else
-    # Fallback if token is not in environment (though it should be)
-    git push origin main || echo "Push failed. Please check Codespace permissions."
-fi
+echo "Background tasks (ports and git push) are running in the background."
+echo "Check /tmp/nikvpn_startup.log for progress."
