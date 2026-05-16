@@ -18,10 +18,10 @@ fi
 
 # Final fallback for local testing
 if [ -z "$CS_NAME" ]; then
-    VLESS_HOST="YOUR_CODESPACE_NAME-443.app.github.dev"
+    VLESS_HOST="YOUR_CODESPACE_NAME-8443.app.github.dev"
     RELAY_URL="https://YOUR_CODESPACE_NAME-8080.app.github.dev"
 else
-    VLESS_HOST="${CS_NAME}-443.app.github.dev"
+    VLESS_HOST="${CS_NAME}-8443.app.github.dev"
     RELAY_URL="https://${CS_NAME}-8080.app.github.dev"
 fi
 
