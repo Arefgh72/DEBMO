@@ -15,7 +15,8 @@
       "repositories": {
         "${localWorkspaceFolderBasename}": {
           "permissions": {
-            "contents": "write"
+            "contents": "write",
+            "workflows": "write"
           }
         }
       }
