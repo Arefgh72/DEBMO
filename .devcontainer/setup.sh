@@ -1,17 +1,23 @@
 #!/bin/bash
 
+# Ensure we are in the .devcontainer directory
+cd "$(dirname "$0")"
+
 # Install Node.js dependencies
-cd .devcontainer
-npm init -y
+if [ ! -f package.json ]; then
+    npm init -y
+fi
 npm install undici
 
-# Set up UUID for Xray
-UUID=$(cat /proc/sys/kernel/random/uuid)
-sed -i "s/PLACEHOLDER_UUID/$UUID/g" config.json
-echo $UUID > xray_uuid.txt
+# Set up UUID for Xray if it doesn't exist
+if [ ! -f xray_uuid.txt ]; then
+    UUID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen)
+    sed -i "s/PLACEHOLDER_UUID/$UUID/g" config.json
+    echo $UUID > xray_uuid.txt
+fi
 
-# Create start script shortcut
+# Ensure scripts are executable
 chmod +x start.sh
 chmod +x show-link.sh
 
-echo "Setup complete. Please run .devcontainer/start.sh to begin."
+echo "Setup complete. The start.sh script will now run to start services."
