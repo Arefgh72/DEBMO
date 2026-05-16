@@ -1,0 +1,31 @@
+{
+  "name": "NikVPN GAS Relay",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "codespaces": {
+      "openPorts": [
+        443,
+        8080
+      ]
+    }
+  },
+  "forwardPorts": [
+    443,
+    8080
+  ],
+  "portsAttributes": {
+    "443": {
+      "label": "VLESS xHTTP",
+      "onAutoForward": "notify",
+      "visibility": "public"
+    },
+    "8080": {
+      "label": "GAS Relay",
+      "onAutoForward": "notify",
+      "visibility": "public"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh"
+}

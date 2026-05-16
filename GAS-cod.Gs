@@ -1,7 +1,7 @@
 // Google Apps Script
 
 const AUTH_KEY = "My777GHSuperSecret123!@#";
-const WORKER_URL = "https://wild-paper-0725.aref-gha.workers.dev";
+const WORKER_URL = "PUT_YOUR_CODESPACE_RELAY_URL_HERE"; // Example: https://name-8080.app.github.dev
 
 const SKIP_HEADERS = {
   host: 1, connection: 1, "content-length": 1,
