@@ -3,12 +3,22 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
   "customizations": {
     "codespaces": {
       "openPorts": [
         443,
         8080
-      ]
+      ],
+      "repositories": {
+        "${localWorkspaceFolderBasename}": {
+          "permissions": {
+            "contents": "write"
+          }
+        }
+      }
     }
   },
   "forwardPorts": [
